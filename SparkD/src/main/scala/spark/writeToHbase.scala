@@ -1,0 +1,6 @@
+package spark
+
+object writeToHbase {
+
+
+}
