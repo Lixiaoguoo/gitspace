@@ -4,7 +4,7 @@ import java.util.UUID
 
 import com.alibaba.fastjson.{JSON, JSONObject}
 import org.apache.kafka.common.serialization.StringDeserializer
-import org.apache.spark.streaming.kafka010.ConsumerStrategies.Subscribe
+import org.apache.spark.streaming.kafka010.ConsumerStrategies.{Assign, Subscribe}
 import org.apache.spark.streaming.kafka010.KafkaUtils
 import org.apache.spark.streaming.kafka010.LocationStrategies.PreferConsistent
 import org.apache.spark.{HashPartitioner, Partitioner, SparkConf, SparkContext}
@@ -12,6 +12,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.hbase.{HBaseConfiguration, TableName}
 import org.apache.hadoop.hbase.client.{Connection, ConnectionFactory, Put}
 import org.apache.hadoop.hbase.util.Bytes
+import org.apache.kafka.common.TopicPartition
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{Partitioner, SparkConf, SparkContext}
 
@@ -98,8 +99,22 @@ object hashPartition {
   }
 
 
-    val topics = Array("lmis")
-    val stream = KafkaUtils.createDirectStream[String,String](ssc,PreferConsistent,Subscribe[String,String](topics,kafkaParams))
+//    val topics = Array("lmis")
+    //    val stream = KafkaUtils.createDirectStream[String,String](ssc,PreferConsistent,Subscribe[String,String](topics,kafkaParams))
+
+
+
+
+    val fromOffsets = collection.mutable.Map[TopicPartition,Long]()
+    fromOffsets += (new TopicPartition("gcy2",2) -> 60)
+    fromOffsets.toMap
+
+    val stream = KafkaUtils.createDirectStream[String,String](
+      ssc,
+      PreferConsistent,
+      Assign[String,String](fromOffsets.keys,kafkaParams,fromOffsets)
+    )
+
 //    val rdd1 = stream.repartition(3)
 //    val rdd2 = rdd1.map(x => (me(x.value()),1)).groupByKey()
 //    rdd2.saveAsTextFiles("hdfs://192.168.2.3:8020/gcy/partition/1")
